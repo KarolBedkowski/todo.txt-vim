@@ -112,6 +112,7 @@ endif
 function! s:ChangeDueDateWrapper(by_days, repeat_mapping)
     call todo#CreateNewRecurrence(0)
     call todo#ChangeDueDate(a:by_days, 'd', '')
+    call todo#ChangeTagDate(a:by_days, 'd', '', 't')
     silent! call repeat#set(a:repeat_mapping, v:count)
 endfunction
 

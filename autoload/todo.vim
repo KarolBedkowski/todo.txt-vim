@@ -469,8 +469,10 @@ function! todo#CreateNewRecurrence(triggerOnNonStrict)
     " setting the current date.
     if l:is_strict
         call todo#ChangeDueDate(l:units, l:unit_type, '')
+        call todo#ChangeTagDate(l:units, l:unit_type, '', 't')
     else
         call todo#ChangeDueDate(l:units, l:unit_type, strftime('%Y-%m-%d'))
+        call todo#ChangeTagDate(l:units, l:unit_type, strftime('%Y-%m-%d'), 't')
     endif
 
     " Move onto the copied task
@@ -494,6 +496,25 @@ function! todo#ChangeDueDate(units, unit_type, from_reference)
     "                   an empty string to use the due:date in the line,
     "                   otherwise a date as a string in the form "YYYY-MM-DD".
 
+    call todo#ChangeTagDate(a:units, a:unit_type, a:from_reference, 'due')
+endfunction "}}}
+
+
+" function todo#ChangeTagDate {{{2
+function! todo#ChangeTagDate(units, unit_type, from_reference, tag)
+    " Change the <tag>:date on the current line by a number of days, months or
+    " years
+    "
+    " units             The number of unit_type to add or subtract, integer
+    "                   values only
+    " unit_type         May be one of 'd' (days), 'm' (months) or 'y' (years),
+    "                   as handled by todo#DateAdd
+    " from_reference    Allows passing a different date to base the calculation
+    "                   on, ignoring the existing tag date in the line. Leave as
+    "                   an empty string to use the <tag>:date in the line,
+    "                   otherwise a date as a string in the form "YYYY-MM-DD".
+    " tag               tag name to change
+
     let l:currentline = getline('.')
 
     " Don't operate on complete tasks
@@ -501,28 +522,29 @@ function! todo#ChangeDueDate(units, unit_type, from_reference)
         return
     endif
 
-    let l:dueDateRex = '\v\c(^|\s)due:\zs\d{4}\-\d{2}\-\d{2}\ze(\s|$)'
 
-    let l:duedate = matchstr(l:currentline, l:dueDateRex)
-    if l:duedate ==# ''
-        " No due date on current line, then add the due date as an offset from
-        " current date. I.e. a v:count of 1 is due tomorrow, etc
-        if l:currentline =~? '\v\c(^|\s)due:'
-            " Has an invalid due: keyword, so don't add another, and don't
+    let l:tagDateRex = '\v\c(^|\s)' . a:tag . ':\zs\d{4}\-\d{2}\-\d{2}\ze(\s|$)'
+
+    let l:tagdate = matchstr(l:currentline, l:tagDateRex)
+    if l:tagdate ==# ''
+        " No tag date on current line, then add the tag date as an offset from
+        " current date. I.e. a v:count of 1 is tag tomorrow, etc
+        if l:currentline =~? '\v\c(^|\s)' . a:tag . ':'
+            " Has an invalid <tag>: keyword, so don't add another, and don't
             " change the line
             return
         endif
-        let l:duedate = strftime('%Y-%m-%d')
-        let l:currentline .= ' due:' . l:duedate
+        let l:tagdate = strftime('%Y-%m-%d')
+        let l:currentline .= ' '. a:tag . ':' . l:tagdate
     endif
     " If a valid reference has been passed, let's use it.
     if a:from_reference =~# '\v^\d{4}\-\d{2}\-\d{2}$'
-        let l:duedate = a:from_reference
+        let l:tagdate = a:from_reference
     endif
 
-    let l:duedate = todo#DateStringAdd(l:duedate, v:count1 * a:units, a:unit_type)
+    let l:tagdate = todo#DateStringAdd(l:tagdate, v:count1 * a:units, a:unit_type)
 
-    if setline('.', substitute(l:currentline, l:dueDateRex, l:duedate, '')) != 0
+    if setline('.', substitute(l:currentline, l:tagDateRex, l:tagdate, '')) != 0
         throw "Failed to set line"
     endif
 endfunction "}}}
